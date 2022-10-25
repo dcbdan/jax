@@ -119,7 +119,7 @@ pybind_extension(
         "-fno-strict-aliasing",
     ],
     features = ["-use_header_modules"],
-    module_name = "executor",
+    module_name = "tos_executor",
     deps = [
         "@org_tensorflow//tensorflow/compiler/xla:tos_cpu_kernel",
         "@pybind11",

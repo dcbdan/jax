@@ -79,7 +79,7 @@ private:
   }
 };
 
-PYBIND11_MODULE(executor, m) {
+PYBIND11_MODULE(tos_executor, m) {
   py::class_<Executor>(m, "Executor")
       .def(py::init<>())
       .def("start", &Executor::start)
