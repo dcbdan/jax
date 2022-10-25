@@ -2,8 +2,6 @@
 #include "include/pybind11/pybind11.h"
 #include "include/pybind11/stl.h"
 
-#include <iostream>
-
 namespace tos {
 namespace {
 
@@ -21,9 +19,6 @@ std::vector<Data> _to_data(
       sz *= s;
     }
     ret.push_back(Data{.data = (float*)info.ptr, .size = sz});
-  }
-  for(auto const& d: ret) {
-    std::cout << d.data << ", " << d.size << std::endl;
   }
   return ret;
 }
