@@ -44,6 +44,7 @@ py_library(
         ":cpu_feature_guard",
         "//jaxlib/cpu:_ducc_fft",
         "//jaxlib/cpu:_lapack",
+        "//jaxlib/cpu:tos_executor",
         "//jaxlib/mlir",
         "//jaxlib/mlir:builtin_dialect",
         "//jaxlib/mlir:chlo_dialect",
@@ -163,3 +164,5 @@ cc_library(
     ],
     alwayslink = 1,
 )
+
+

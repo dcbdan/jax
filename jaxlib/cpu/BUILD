@@ -110,3 +110,19 @@ cc_library(
     ],
     alwayslink = 1,
 )
+
+pybind_extension(
+    name = "tos_executor",
+    srcs = ["tos_executor.cc"],
+    copts = [
+        "-fexceptions",
+        "-fno-strict-aliasing",
+    ],
+    features = ["-use_header_modules"],
+    module_name = "executor",
+    deps = [
+        "@org_tensorflow//tensorflow/compiler/xla:tos_cpu_kernel",
+        "@pybind11",
+    ],
+)
+

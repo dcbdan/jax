@@ -181,6 +181,7 @@ def prepare_wheel(sources_path):
   cpu_dir = os.path.join(jaxlib_dir, "cpu")
   os.makedirs(cpu_dir)
   copy_file(f"__main__/jaxlib/cpu/_lapack.{pyext}", dst_dir=cpu_dir)
+  copy_file(f"__main__/jaxlib/cpu/tos_executor.{pyext}", dst_dir=cpu_dir)
   copy_file(f"__main__/jaxlib/cpu/_ducc_fft.{pyext}", dst_dir=cpu_dir)
 
   cuda_dir = os.path.join(jaxlib_dir, "cuda")
