@@ -27,6 +27,7 @@ std::vector<Data> _to_data(
 
 struct Executor {
   Executor():
+    holder(new RunOptionsHolder()),
     scratch_buffer(nullptr),
     allocated(0),
     scratch_buffer_size(0)
@@ -67,17 +68,18 @@ struct Executor {
   void call(
     size_t which_kernel,
     std::vector<py::buffer> inns,
-    std::vector<py::buffer> outs) const
+    std::vector<py::buffer> outs)
   {
     CpuKernel& kernel = *(kernels[which_kernel]);
     if(allocated >= kernel.scratch_buffer_size()) {
-      kernel(_to_data(inns), _to_data(outs), scratch_buffer);
+      kernel(holder->get_run_options(), _to_data(inns), _to_data(outs), scratch_buffer);
     } else {
-      kernel(_to_data(inns), _to_data(outs), nullptr);
+      kernel(holder->get_run_options(), _to_data(inns), _to_data(outs), nullptr);
     }
   }
 
 private:
+  std::unique_ptr<RunOptionsHolder> holder;
   std::vector<std::unique_ptr<CpuKernel>> kernels;
   void*  scratch_buffer;
   size_t allocated;
