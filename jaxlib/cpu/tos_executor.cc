@@ -8,33 +8,38 @@ namespace {
 namespace py = pybind11;
 
 std::vector<Data> _to_data(
-  std::vector<py::buffer> items)
+  std::vector<py::buffer>& items)
 {
   std::vector<Data> ret;
   ret.reserve(items.size());
-  for(py::buffer& b: items) {
+  for(py::buffer const& b: items) {
     py::buffer_info info = b.request();
-    size_t sz = info.itemsize;
+    assert(info.itemsize == sizeof(float));
+    size_t sz = 1;
     for(auto const& s: info.shape) {
       sz *= s;
     }
     ret.push_back(Data{.data = (float*)info.ptr, .size = sz});
   }
+
   return ret;
 }
 
 struct Executor {
   Executor():
     scratch_buffer(nullptr),
+    allocated(0),
     scratch_buffer_size(0)
   {
     kernels.reserve(500);
   }
 
-  size_t register_kernel(std::string const& hlo) {
-    kernels.emplace_back(hlo);
+  ~Executor() { deallocate(); }
 
-    size_t sz = kernels.back().scratch_buffer_size();
+  size_t register_kernel(std::string const& hlo) {
+    kernels.emplace_back(new CpuKernel(hlo));
+
+    size_t sz = kernels.back()->scratch_buffer_size();
     if(sz > scratch_buffer_size) {
       scratch_buffer_size = sz;
     }
@@ -42,43 +47,48 @@ struct Executor {
     return kernels.size()-1;
   }
 
-  void start() { allocate_scratch_buffer(); }
-
-  void stop()  { deallocate_scratch_buffer(); }
-
-  void call(
-    size_t which_kernel,
-    std::vector<py::buffer> const& inns,
-    std::vector<py::buffer> const& outs) const
-  {
-    CpuKernel const& kernel = kernels[which_kernel];
-    kernel(_to_data(inns), _to_data(outs), scratch_buffer);
-  }
-
-private:
-  std::vector<CpuKernel> kernels;
-  void*  scratch_buffer;
-  size_t scratch_buffer_size;
-
-  void allocate_scratch_buffer() {
-    if(scratch_buffer_size > 0) {
+  void allocate() {
+    if(allocated < scratch_buffer_size) {
+      deallocate();
       scratch_buffer = new char[scratch_buffer_size];
+      allocated = scratch_buffer_size;
     }
   }
 
-  void deallocate_scratch_buffer() {
+  void deallocate() {
     if(scratch_buffer != nullptr) {
       char* c = (char*)scratch_buffer;
       delete[] c;
     }
+    scratch_buffer = nullptr;
+    allocated = 0;
   }
+
+  void call(
+    size_t which_kernel,
+    std::vector<py::buffer> inns,
+    std::vector<py::buffer> outs) const
+  {
+    CpuKernel& kernel = *(kernels[which_kernel]);
+    if(allocated >= kernel.scratch_buffer_size()) {
+      kernel(_to_data(inns), _to_data(outs), scratch_buffer);
+    } else {
+      kernel(_to_data(inns), _to_data(outs), nullptr);
+    }
+  }
+
+private:
+  std::vector<std::unique_ptr<CpuKernel>> kernels;
+  void*  scratch_buffer;
+  size_t allocated;
+  size_t scratch_buffer_size;
 };
 
 PYBIND11_MODULE(tos_executor, m) {
   py::class_<Executor>(m, "Executor")
       .def(py::init<>())
-      .def("start", &Executor::start)
-      .def("stop",  &Executor::stop)
+      .def("allocate", &Executor::allocate)
+      .def("deallocate", &Executor::deallocate)
       .def("register_kernel", &Executor::register_kernel)
       .def("call", &Executor::call);
 }
