@@ -86,6 +86,24 @@ private:
   size_t scratch_buffer_size;
 };
 
+size_t _mem_align_offset(void* mem_, size_t align_to) {
+  static_assert(sizeof(size_t) >= sizeof(std::uintptr_t));
+  size_t mem = reinterpret_cast<std::uintptr_t>(mem_);
+
+  // An easier to understand but slower way to do it...
+  //    for(int i = 0; i != align_to; ++i) {
+  //      if((mem + i) % align_to == 0) {
+  //        return i;
+  //      }
+  //    }
+
+  return ((mem + (align_to-1)) & ~(align_to-1)) - mem;
+}
+size_t mem_align_offset(py::buffer b, size_t align_to) {
+  py::buffer_info info = b.request();
+  return _mem_align_offset(info.ptr, align_to); 
+}
+
 PYBIND11_MODULE(tos_executor, m) {
   py::class_<Executor>(m, "Executor")
       .def(py::init<>())
@@ -93,6 +111,7 @@ PYBIND11_MODULE(tos_executor, m) {
       .def("deallocate", &Executor::deallocate)
       .def("register_kernel", &Executor::register_kernel)
       .def("call", &Executor::call);
+  m.def("mem_align_offset", &mem_align_offset);
 }
 
 }  // namespace
